@@ -1,0 +1,61 @@
+#!/bin/bash
+
+#Definimos las variables a utilizar
+desplegar=0	#Agregar comentario de para que la declaramos
+contra=""	#Agregamos idem anterior
+
+
+#Creamos un while para recorrer los parametros
+while [ $# -gt 1 ];do	#COMENTAR
+	case "$1" in	
+		-i) 	#COMENTAR
+			desplegar=1
+			shift
+			;;
+		-c)	#COMENTAR
+			if [ -z "$2" ]; then
+				echo "Erorr, Falta agregar la contraseña luego del parametro" >&2
+				exit 2
+			fi
+			contra="$2"	#COMENTAR
+			shift 2
+			;;
+		-*)	#COMENTAR
+			echo "Error, el parametro $1 no es valido" >&2
+			exit 3
+			;;
+	esac
+done
+
+archivo="$1"	#COMENTAR
+
+#COMENTAR
+if [ -z "$archivo" ]; then
+        echo "Error, no ingreso ningun archivo" >&2
+        exit 4
+
+fi
+
+#Probamos que funciona la lectura de los inputs con banderas
+#echo "Opcion -i = $desplegar"
+#echo "Contraseña = $contra"
+#echo "Archivo = $archivo"
+
+while IFS= read i; do	#En cada iteracion del while lee linea por liena y lo guarda en la variable i evitando con IFS que corte por los espacios
+
+	usuario=$(echo "$i" | cut -d":" -f1)
+	comentario=$(echo "$i" | cut -d":" -f2)
+	home=$(echo "$i" | cut -d":" -f3)
+	crear=$(echo "$i" | cut -d":" -f4)
+	shell=$(echo "$i" | cut -d":" -f5)
+	
+	if [ -z "$usuario" ]; then
+		echo "Error, el usuario esta vacio"
+	else
+
+
+
+done < "$archivo"
+
+
+

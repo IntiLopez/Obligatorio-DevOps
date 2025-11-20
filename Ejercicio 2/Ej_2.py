@@ -16,7 +16,7 @@ try:
     print(f"Bucket creado: {bucket_name}")
 except ClientError as e:
     if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
-        print(f"El bucket {bucket_name} ya existe y es tuyo.")
+        print(f"El bucket {bucket_name} ya existe.")
     else:
         print(f"Error creando bucket: {e}")
         exit(1)
@@ -82,14 +82,18 @@ yum update -y
 yum install -y httpd unzip awscli php php-mysqlnd -y
 systemctl start httpd
 systemctl enable httpd
+
 #Creamos la carpeta donde se va a alojar la aplicacion y nos posicionamos en ella
 mkdir -p /var/www/html/app
 cd /var/www/html/app
+
 #Descargamos el zip desde la instancia S3
 aws s3 cp s3://{bucket_name}/{object_name} /var/www/html/obligatorio.zip
+
 #Descomprimimos el archivo de la aplicacion
 unzip -o /var/www/html/obligatorio.zip -d /var/www/html/obligatorio-main
 echo "La aplicacion se desplego correctamente desde S3" > /var/www/html/index.html
+
 #Reiniciamos apache
 systemctl restart httpd
 '''
@@ -112,12 +116,15 @@ ec2_id = ec2_response['Instances'][0]['InstanceId']
 #Creamos un TAG
 ec2.create_tags(
     Resources=[ec2_id],
-    Tags=[{'Key': 'Name', 'Value': 'webserver-devops'}]#modificar nombre
+    Tags=[{'Key': 'Name', 'Value': 'ec2-web'}]
 )
-print(f"Instancia creada con ID: {ec2_id} y tag 'webserver-devops'")#modificar nombre
+print(f"Instancia creada con ID: {ec2_id} y nombre de instancia 'ec2-web'")
 
 #Esperamos que la instancia este corriendo
 ec2.get_waiter('instance_status_ok').wait(InstanceIds=[ec2_id])
+
+#Colocamos un mensaje en pantalla mientras la instancia inicie
+print(f"Espere mientras inicia la instancia")
 
 # Creamos RDS con sus parámetros
 

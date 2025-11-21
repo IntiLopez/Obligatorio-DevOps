@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Planilla de Empleados</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css" />
+  
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Planilla de Empleados</h1>
+    <div>
+  <button class="btn-nuevo" onclick="showModal()">➕ Nuevo empleado</button>
+    </div>
+
+    <div id="msg-placeholder"></div>
+
+    <section id="empleados-section">
+      <table id="empleados-table">
+        <thead>
+          <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Sueldo</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+          <!-- FILAS EMPLEADOS -->
+        </tbody>
+      </table>
+    </section>
+
+    <section id="sueldos-section" style="display:none;">
+      <h2>Sueldos de Empleados</h2>
+      <table id="sueldos-table">
+        <thead>
+          <tr><th>Nombre</th><th>Sueldo</th></tr>
+        </thead>
+        <tbody>
+          <!-- FILAS SUELDOS -->
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Modal Agregar -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal">
+      <form class="form-add" method="post" autocomplete="off" onsubmit="return hideModal()">
+        <fieldset>
+          <legend>Nuevo Empleado</legend>
+          <input type="text" name="nombre" placeholder="Nombre" required>
+          <input type="email" name="email" placeholder="Email" required>
+          <input type="number" name="sueldo" placeholder="Sueldo" min="0" step="0.01" required>
+        </fieldset>
+        <button type="submit">Agregar empleado</button>
+        <button type="button" class="close-btn" onclick="hideModal()">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Editar -->
+  <div class="modal-bg" id="edit-modal-bg">
+    <div class="modal">
+      <form class="form-add" method="post" autocomplete="off" onsubmit="return hideEditModal()">
+        <fieldset>
+          <legend>Editar Empleado</legend>
+          <input type="hidden" name="edit_id" id="edit_id">
+          <input type="text" name="edit_nombre" id="edit_nombre" placeholder="Nombre" required>
+          <input type="email" name="edit_email" id="edit_email" placeholder="Email" required>
+          <input type="number" name="edit_sueldo" id="edit_sueldo" placeholder="Sueldo" min="0" step="0.01" required>
+        </fieldset>
+        <button type="submit">Guardar cambios</button>
+        <button type="button" class="close-btn" onclick="hideEditModal()">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function toggleSueldos() {
+      const emp = document.getElementById('empleados-section');
+      const sueldos = document.getElementById('sueldos-section');
+      if (sueldos.style.display === 'none') {
+        sueldos.style.display = 'block';
+        emp.style.display = 'none';
+      } else {
+        sueldos.style.display = 'none';
+        emp.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

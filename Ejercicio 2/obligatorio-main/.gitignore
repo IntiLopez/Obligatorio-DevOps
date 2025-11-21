@@ -1,0 +1,3 @@
+deploy_app.py
+Dockerfile
+docker-compose.yml

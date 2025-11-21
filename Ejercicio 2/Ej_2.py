@@ -1,5 +1,3 @@
-from pydoc import describe
-
 import boto3
 from getpass import getpass
 from botocore.exceptions import ClientError
@@ -86,7 +84,7 @@ if resp['SecurityGroups']:
     rds_sg_id=resp['SecurityGroups'][0]['GroupId']
     print(f"El Security Group {rds_sg_id} ya existe, lo reutilizare")
 else:
-    rds_sg_id = rds.create_security_group(
+    rds_sg_id = ec2.create_security_group(
         GroupName= 'rds_sg',
         Description='SG para la base de datos'
 )
@@ -115,7 +113,7 @@ except ClientError as e:
 
 # Creamos RDS con sus parámetros
 
-DB_INSTANCE_ID = 'app-mysql-2'
+DB_INSTANCE_ID = 'app-mysql'
 DB_NAME = 'demo_db'
 DB_USER = 'admin'
 
@@ -157,8 +155,8 @@ rds_endpoint = resp_db ['DBInstances'][0]['Endpoint']['Address']
 
 
 user_data = f'''#!/bin/bash
-yum update -y
-yum install -y httpd unzip awscli php php-mysqlnd mariadb105 -y
+dnf update -y
+dnf install -y httpd unzip awscli php php-cli php-fpm php-common php-mysqlnd mariadb105 -y
 systemctl start httpd
 systemctl enable httpd
 
@@ -183,7 +181,7 @@ cp /tmp/obligatorio-main/login.css /var/www/html/login.css
 cp /tmp/obligatorio-main/login.html /var/www/html/login.html
 cp /tmp/obligatorio-main/login.js /var/www/html/login.js
 cp /tmp/obligatorio-main/login.php /var/www/html/login.php
-cp /tmp/obligatorio-main/login.php /var/www/init_db.sql
+cp /tmp/obligatorio-main/init_db.sql /var/www/init_db.sql
 
 
 mysql -h {rds_endpoint} -u {DB_USER} -p{DB_PASS} {DB_NAME} < /var/www/init_db.sql
@@ -196,16 +194,16 @@ DB_PASS={DB_PASS}
 
 ENV
 
-sudo chown apache:apache /var/www/.env
-sudo chmod 600 /var/www/.env```
+sudo chown -R apache:apache /var/www/.env
+sudo chmod -R 600 /var/www/.env```
 
 sudo chown -R apache:apache /var/www/html
 sudo chmod -R 755 /var/www/html
 
-echo "La aplicacion se desplego correctamente" > /var/www/html/app/obligatorio-main/index.html
+#echo "La aplicacion se desplego correctamente" > /var/www/html/index.html
 
 #Reiniciamos apache
-systemctl restart httpd
+systemctl restart httpd php-fpm
 '''
 
 # Lanzamos la instancia EC2 con el bash anterior

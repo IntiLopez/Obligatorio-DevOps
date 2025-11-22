@@ -16,26 +16,6 @@ if [ $# -lt 2 ];then
 	echo Como minimo se admite el archivo como parametro
 	exit 7
 fi
-#Archivo ingresado igual a vacio como tu alma :P
-if [ -z "$archivo" ];then
-        echo "Error, no ingreso ningun archivo o " >&2
-        exit 4
-
-fi
-#El archivo no es un archivo.. si pasa esto tambien existe
-if ! [ -f "$archivo" ];then
-        echo que poenes gil? Esto no es un archivo, son papas, cocinalas estan re duras
-        exit 5
-fi
-#Esta bien el archivo??
-#La esctructura del archivo es incorrecta
-
-	if [[  $(grep "^[0-9a-z]*") ]] 
-		#https://unix.stackexchange.com/questions/287077/why-cant-linux-usernames-begin-with-numbers
-		#Aca comenta que se puede crear usuarios con numeros pero no es recomendable así que..
-	
-	
-		Vshell=$(find /usr/bin -maxdepth 1 -name "znew" | cut -d"/" -f4) #Busca que el shell exista
 
 #Creamos un while para recorrer los parametros
 while [ $# -gt 1 ];do	#Recorremos los parametros
@@ -59,48 +39,84 @@ while [ $# -gt 1 ];do	#Recorremos los parametros
 	esac
 done
 
-archivo="$1"	#Descarte todo, solo me queda el archivo
+archivo="$1"	#Descarte todo, solo me queda el archivo lo guardo
 
-#Probamos que funciona la lectura de los inputs con banderas
-#echo "Opcion -i = $desplegar"
-#echo "Contraseña = $contra"
-#echo "Archivo = $archivo"
-
-#while IFS= read i; do	#En cada iteracion del while lee linea por liena y lo guarda en la variable i evitando con IFS que corte por los espacios
-for i in $(cat $archivo); do
-	
-
-	#Evaluar por aca cada linea del archivo por aca con un grep evaluando los campos
-	usuario=$(echo "$i" | cut -d":" -f1)
-	comentario=" -c $(echo "$i" | cut -d":" -f2) "
-	home=$(echo "$i" | cut -d":" -f3)
-	crear=$(echo "$i" | cut -d":" -f4) 
-	#si dice "SI" directamente me coloque el -m que es crear el directorio HOME en useradd
-	echo $i
-	if ( "$crear" = "SI" );then
-		crear=" -m"
-	else 
-		crear=" -M" #Con control previo si este campo recibe NO
+#Archivo ingresado igual a vacio como tu alma :P
+if [ -z "$archivo" ];then
+        echo "Error, no ingreso ningun archivo o " >&2
+        exit 4
+fi
+#El archivo no es un archivo.. si pasa este exit tambien existe
+if ! [ -f "$archivo" ];then
+        echo que poenes gil? Esto no es un archivo, son papas, cocinalas estan re duras
+        exit 5
+fi
+#Esta bien el archivo??
+#La esctructura del archivo es incorrecta testeando
+cont=0
+contusu=0
+for linea in $(cat $archivo);do
+        cont=$((cont+1)) #Doble parentesis para que haga una suma posta y no strings turbios
+        if ! [[ "$linea" =~ ^[a-z_][a-z0-9_-]*:[^:].*:+/.*:(SI|NO):/bin/.*$ ]];then
+		#Quedo largo pero esto verifica correctamente toda la linea completa y verifica
+		#que el campo usuario no este vacio
+                #https://unix.stackexchange.com/questions/287077/why-cant-linux-usernames-begin-with-numbers
+                #Aca comenta que se puede crear usuarios con numeros pero no es recomendable así que..
+                #Aunque en RedHat si lo admite
+                #https://access.redhat.com/solutions/3103631
+		#Aca no hacemos eso $meme
+                errorfatal="true" #Esto nos manda al mensaje de "ATENCION no se creo"
+        fi
+	gsh="$(echo $linea | cut -d":" -f5)" #| cut -d:"/" -f3)" #Esta variable nos servira para mas adelante como tu hermana
+        Vsh="$(find /usr/bin -maxdepth 1 -wholename "/usr$gsh")" #Busca que el shell exista
+	if [ -z "$Vsh" ];then #Si no encuentra la shell
+		#echo La shell de la linea $cont no es correcta
+		errorfatal="true"
 	fi
-	shell=$(echo "$i" | cut -d":" -f5)
-#Probamos que funciona la lectura de los inputs con banderas
-#echo "Opcion -i = $desplegar"
-#echo "Contraseña = $contra"
-#echo "Archivo = $archivo"
+	#----------------------------------------------
+	usuario=$(echo "$linea" | cut -d":" -f1)
 	
-	if [ -z "$usuario" ]; then #La comprobacion del usuario tiene que estar antes y avisar al usuario que esta mal esto lo podemos hacer con un grep al archivo linea a linea o en este mismo antes de guardar las variables
-		echo "Error, el usuario esta vacio"
-		exit 5
+	comentario="$(echo "$linea" | cut -d":" -f2)" 2> /dev/null #Si el comentario esta vacio que el cut no moleste
+	home=$(echo "$linea" | cut -d":" -f3)
+	crear=$(echo "$linea" | cut -d":" -f4)
+	#----------------------------------------------
+	if [[ "$crear" = "SI" ]];then #Los parentesis rectos dobles son la posta, evaluan mejor
+        	creard=" -m"
+        else
+                creard=" -M" #Con control previo en el Regex que recibe NO espesificamente
+        fi
+	#if [ -z "$usuario" ];then #Esto ya lo controlo en el Regex
+	#---------------Variables de testeo---------
+	echo $usuario
+	echo $comentario
+	echo $creard
+	echo $home
+	echo $gsh
+	#-------------------PENDIENTES------------------------
+	#Hacer dos versiones del useradd una con esto que esta debajo y otra con las opciones por defecto
+	#Si esta con las opciones por defecto que hay que separar con su parametro "-"
+	#tambien hay que cambiar la linea del Regex ya que no aceptaria la bash vacia para que deje por defecto
+	#revisar si el Regex filtra algo más
+	useradd $creard -d $home -c "$comentario" -s "$shell" $usuario #2> /dev/null
+
+	if [[ "$desplegar" = "1" ]];then
+		usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep $usuario)
+		if [ -z "$usuario"  ];then
+			errorfatal="true"
+		else
+			echo Usuario $usuario creado con éxito con datos indicados:
+			echo "	Comentario: $comentario"
+			echo "	Dir home: $home"
+			echo "	Asegurado existencia de directorio home: $crear"
+			echo "	Shell por defecto: $gsh"
+			#----------------PENDIENTES 2-------------------------------
+			#Estas variables si estan por defecto tienen que venir con el valor que dice la letra
+			#La idea es que si estan por defecto "vacias" que directamente le agregue a todas el
+			#valor
+		fi
+		if [[ "$errorfatal" = "true"]];then
+			echo ATENCION: el usuario $usuario de la linea $cont no pudo ser creado
+		fi
+	errorfatal="falso" #Seteo la variable preparandola para el siguente recorrido
 	fi
-	
-	#La idea es que si llega hasta aca es que los controles ya estan hechos, sino que devuela errores
-	#si el campo esta vacio habrìa que llenarlo con algo para 
-#	useradd$crear $usuario $comentario $home $shell 2> /dev/null  
-	#Probar que pasa si queda algo vacio, lo crea por defecto? o error?
-
-	#Si esta el -i levantado utilizo la variable desplegar=1 para buscar el nombre en /etc/passwd, evaluar si ya fue creado o no y que hacer aca
-done	
-#done < "$archivo" #Del while
-
-
-
+done #Fin del for de recorrida de linea a linea

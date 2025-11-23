@@ -1,4 +1,4 @@
-pepe:Este es un mi amigo pepe:/home/jose:SI:/bin/bash
-papanatas:Este es un usuario trucho:/trucho:NO:/bin/sh
-elmaligno::::/bin/el_maligno
+arroze:Este es un mi amigo pepe:/home/jose:SI:/bin/bash
+travesti:Este es un usuario trucho:/trucho:NO:/bin/sh
+naranjass::::/bin/el_maligno
 

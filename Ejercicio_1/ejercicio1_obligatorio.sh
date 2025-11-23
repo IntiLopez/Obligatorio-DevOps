@@ -29,7 +29,7 @@ while [ $# -gt 1 ];do	#Recorremos los parametros
 				echo "Error, Falta agregar la contraseña luego del parametro" >&2
 				exit 2
 			fi
-			contra="-p \"$2\""	#Guardo el -p y la contraseña para tirar la variable entera al useradd
+			contra="$2"	#Guardo el -p y la contraseña para tirar la variable entera al useradd
 			shift 2
 			;;
 		-*)	#COMENTAR
@@ -51,109 +51,102 @@ if ! [ -f "$archivo" ];then
         echo que poenes gil? Esto no es un archivo, son papas, cocinalas estan re duras
         exit 5
 fi
-#Esta bien el archivo??
-#La esctructura del archivo es incorrecta testeando
+#Permiso de lectura sobre el archivo?
+if ! [ -r "$archivo" ];then
+	echo No tiene permisos de lectura sobre el archivo
+	exit 6
+fi
 cont=0
+#reviso el archivo linea a linea si es correcto
+for linea in $(cat $archivo);do
+	 cont=$((cont+1))
+	if ! [[ "$linea" =~ ^[a-z_][a-z0-9_-]*:[^:]*:.*:(SI|NO):.*$ ]];then
+		#Campo usuario no vacio y que se respeten los
+                 #https://unix.stackexchange.com/questions/287077/why-cant-linux-usernames-begin-with-numbers
+                 #Aca comenta que se puede crear usuarios con numeros pero no es recomendable así que..
+                 #Aunque en RedHat si lo admite
+                 #https://access.redhat.com/solutions/3103631
+
+		echo Estructura del archivo incorrecta, revise la linea $cont
+		exit 7
+	fi
+done
+#-----------------------------RECORRIDO PRINCIPAL---------------------
+cont=0
+errorfatal="false"
 for linea in $(cat $archivo);do
         cont=$((cont+1)) #Doble parentesis para que haga una suma posta y no strings turbios
-        if ! [[ "$linea" =~ ^[a-z_][a-z0-9_-]*:[^:].*:+/.*:(SI|NO):[^:].*$ ]];then
-		#Quedo largo pero esto verifica correctamente toda la linea completa y verifica
-		#que el campo usuario no este vacio
-                #https://unix.stackexchange.com/questions/287077/why-cant-linux-usernames-begin-with-numbers
-                #Aca comenta que se puede crear usuarios con numeros pero no es recomendable así que..
-                #Aunque en RedHat si lo admite
-                #https://access.redhat.com/solutions/3103631
-		#Aca no hacemos eso $meme
-                errorfatal="true" #Esto nos manda al mensaje de "ATENCION no se creo"
-        fi
-	gsh="$(echo $linea | cut -d":" -f5)" #| cut -d:"/" -f3)" #Esta variable nos servira para mas adelante como tu hermana
-        Vsh="$(find /usr/bin -maxdepth 1 -wholename "/usr$gsh")" #Busca que el shell exista
-	if [ -z "$Vsh" ];then #Si no encuentra la shell
+	gsh="$(echo $linea | cut -d":" -f5)" #| cut -d:"/" -f3)" #Esta variable nos servira para mas adelante
+        #Vsh="$(find /usr/bin -maxdepth 1 -wholename "/usr$gsh")" #Busca que el shell exista
+	#if [ -z "$Vsh" ];then #Si no encuentra la shell
 		#echo La shell de la linea $cont no es correcta
-		errorfatal="true"
-	fi
-	#----------------------------------------------
+	#	errorfatal="true"
+	#fi Si va el verificador del shell se deja si no no
+	#--------------------------------------------------------
 	usuario=$(echo "$linea" | cut -d":" -f1)
 	comentario="$(echo "$linea" | cut -d":" -f2)" 2> /dev/null #Si el comentario esta vacio que el cut no moleste
 	home=$(echo "$linea" | cut -d":" -f3)
 	crear=$(echo "$linea" | cut -d":" -f4)
-	#----------------------------------------------
+	#---------------------------------------------------------
 	if [[ "$crear" = "SI" ]];then #Los parentesis rectos dobles son la posta, evaluan mejor
-        	creard=" -m"
+        	creard="-m"
         else
-                creard=" -M" #Con control previo en el Regex que recibe NO espesificamente
+                creard="-M" #Con control previo en el Regex que recibe NO espesificamente
         fi
-	#if [ -z "$usuario" ];then #Esto ya lo controlo en el Regex
-	#---------------Variables de testeo---------
-	#echo $usuario
-	#echo $comentario
-	#echo $creard
-	#echo $home
-	#echo $gsh
-	#-------------------PENDIENTES------------------------
-	#Hacer dos versiones del useradd una con esto que esta debajo y otra con las opciones por defecto
-	#Si esta con las opciones por defecto que hay que separar con su parametro "-"
-	#tambien hay que cambiar la linea del Regex ya que no aceptaria la bash vacia para que deje por defecto
-	#revisar si el Regex filtra algo más
-	#----------------------------SOLUCION PARA EL CULO--------------------
-	#Aca va un -z or cada variable negado si es que no esta ninguna vacia sino que entre aca
-	#for r in $(echo -e $home\n$comentario\n$shell\ | cat);do #saco las variables y las coloco en el archivo pipe para digierirlas
-	#	if [ -z $r ];then #Si esta vacia 
-	#		
-	#	fi
-	#done
-	# Otra solucion que no llego a nada
-	#
-	#if ! [ -z $comentario] || [  -z $home] || [ -z $gsh];then #Si ninguna esta vacia ejecute
-	#	useradd $creard -d $home -c "$comentario" -s "$shell" $usuario #2> /dev/null
-	#else
-
-	#	useradd  $creard -d $home -c "$comentario" -s "$shell" $usuario
-	#fi#salgo
 	#----------------------CAMPOS POR DEFECTO---------------------------------------
-	if  ! [ -z $comentario ];then
-		armocomand=" -c \"$comentario\""
-	fi
-	if ! [  -z $home ];then
-		armocomand=($armocomand + " -d \"$home\" ")  
-	fi
-	if ! [ -z $gsh ];then
-		armocomand=($armocomand + " -s \"$gsh\" ") 
-	fi
-	#	echo "No hay vacias" 2> /dev/null #Comentario solamente para tirar el else
-	if [ -z $armocomand ];then
-		useradd  \"$usuario\" $creard $contra
+	usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep "^$usuario$")#Ese grep busca una linea vacia si esta vacio
+	if [ -n "$usuariocreado" ] || [[ $errorfatal = "true" ]];then
+		errorfatal="true"
 	else
-		useradd \"$usuario\"$armocomand$creard $contra 
-		echo "useradd \"$usuario\"$armocomand$creard $contra"
+		armocomand=()#Creo que sin un array esto es imposible, lo intente
+		if [ -n "$comentario" ];then #Si no esta vacio agrega al array, igual con los demas
+			armocomand+=(-c "$comentario")
+		fi
+		if [  -n "$home" ];then
+			armocomand+=(-d "$home")  
+		fi
+		if [ -n "$gsh" ];then
+			armocomand+=(-s "$gsh") 
+		fi
+		if [ -z "$armocomand" ];then
+			useradd $creard "$usuario" 
+			#echo "useradd $creard $usuario" #TEST
+		else
+			useradd "${armocomand[@]}" $creard "$usuario" 
+		        #echo "useradd ${armocomand[@]} $creard $usuario" #TEST	
+		fi
+		if ! [ -z $contra ];then
+	                echo $usuario:$contra | sudo chpasswd 2> /dev/null
+                fi
 	fi
-
 	#-------------------------------------------------------------
-	if [[ "$desplegar" = "1" ]];then
-		usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep $usuario)
+	if [[ "$desplegar" = "1" ]];then#Despegar es el -i para mostrar informacion
+		usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep "^$usuario$")
 		if [ -z "$usuariocreado"  ];then
 			errorfatal="true"
 		else
+			if [[ "$errorfatal" = "false" ]];then
+				echo Usuario $usuario creado con éxito con datos indicados:
+				echo "	Comentario: $comentario"
+				echo "	Dir home: $home"
+				echo "	Asegurado existencia de directorio home: $crear"
+				echo "	Shell por defecto: $gsh"
+				echo corresponde a la linea $cont
+			else
+				echo ATENCION: el usuario $usuario de la linea $cont no pudo ser creado
+				error=0
+			fi
+		fi
+		if ! [[ "$errorfatal" = "false" ]] && [[ $error = "1" ]];then
+		       echo ATENCION: el usuario $usuario de la linea $cont no pudo ser creado
+		fi	       
+	fi#Aca termina el -i que despliega informaciontrucho
 
-			echo Usuario $usuario creado con éxito con datos indicados:
-			echo "	Comentario: $comentario"
-			echo "	Dir home: $home"
-			echo "	Asegurado existencia de directorio home: $crear"
-			echo "	Shell por defecto: $gsh"
-			echo corresponde a la linea $cont
-			#----------------PENDIENTES 2-------------------------------
-			#Estas variables si estan por defecto tienen que venir con el valor que dice la letra
-			#La idea es que si estan por defecto "vacias" que directamente le agregue a todas el
-			#valor
-		fi
-		if [[ "$errorfatal" = "true" ]];then
-			echo ATENCION: el usuario $usuario de la linea $cont no pudo ser creado
-		fi
-	fi
 	#Reseteo de variables por ciclo
 	errorfatal="falso" #Seteo la variable preparandola para el siguente recorrido
-	c="0"
-	h="0"
-	g="0"
-	#Fin dle recorrido
+	usuariocreado=""
 done #Fin del for de recorrida de linea a linea
+#---------------------------------COMENTARIOS----------------------------------
+#Links de paginas que me ayudar con el array
+#https://atareao.es/tutorial/scripts-en-bash/arrays-en-bash
+#https://www.hostinger.com/tutorials/how-to-use-bash-array

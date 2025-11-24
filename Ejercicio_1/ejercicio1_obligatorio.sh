@@ -94,33 +94,33 @@ for linea in $(cat $archivo);do
                 creard="-M" #Con control previo en el Regex que recibe NO espesificamente
         fi
 	#----------------------CAMPOS POR DEFECTO---------------------------------------
-	usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep "^$usuario$")#Ese grep busca una linea vacia si esta vacio
-	if [ -n "$usuariocreado" ] || [[ $errorfatal = "true" ]];then
+	usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep "^$usuario$") #Ese grep busca una linea vacia si esta vacio
+	if [ -n "$usuariocreado" ];then
 		errorfatal="true"
 	else
-		armocomand=()#Creo que sin un array esto es imposible, lo intente
+		armocomand=() #Creo que sin un array esto es imposible, lo intente
 		if [ -n "$comentario" ];then #Si no esta vacio agrega al array, igual con los demas
 			armocomand+=(-c "$comentario")
 		fi
-		if [  -n "$home" ];then
+		if [  -n "$home" ] && [[ "$crear" = "SI" ]];then
 			armocomand+=(-d "$home")  
 		fi
 		if [ -n "$gsh" ];then
 			armocomand+=(-s "$gsh") 
 		fi
-		if [ -z "$armocomand" ];then
-			useradd $creard "$usuario" 
+		if [ ${#armocomand[@]} -eq 0 ];then #comparo si la longitud del array es 0, en vez del -z "", 3 horas con esto
+			useradd $creard "$usuario" 2> /dev/null
 			#echo "useradd $creard $usuario" #TEST
 		else
-			useradd "${armocomand[@]}" $creard "$usuario" 
+			useradd "${armocomand[@]}" $creard "$usuario" 2> /dev/null 
 		        #echo "useradd ${armocomand[@]} $creard $usuario" #TEST	
 		fi
-		if ! [ -z $contra ];then
+		if ! [ -z "$contra" ];then
 	                echo $usuario:$contra | sudo chpasswd 2> /dev/null
                 fi
 	fi
 	#-------------------------------------------------------------
-	if [[ "$desplegar" = "1" ]];then#Despegar es el -i para mostrar informacion
+	if [[ "$desplegar" = "1" ]];then #Despegar es el -i para mostrar informacion
 		usuariocreado=$(cat /etc/passwd | cut -d":" -f1 | grep "^$usuario$")
 		if [ -z "$usuariocreado"  ];then
 			errorfatal="true"
@@ -134,16 +134,13 @@ for linea in $(cat $archivo);do
 				echo corresponde a la linea $cont
 			else
 				echo ATENCION: el usuario $usuario de la linea $cont no pudo ser creado
-				error=0
 			fi
 		fi
-		if ! [[ "$errorfatal" = "false" ]] && [[ $error = "1" ]];then
-		       echo ATENCION: el usuario $usuario de la linea $cont no pudo ser creado
-		fi	       
-	fi#Aca termina el -i que despliega informaciontrucho
+		#Este if reamlente esta bien?
+	fi #Aca termina el -i que despliega informaciontrucho
 
 	#Reseteo de variables por ciclo
-	errorfatal="falso" #Seteo la variable preparandola para el siguente recorrido
+	errorfatal="false" #Seteo la variable preparandola para el siguente recorrido
 	usuariocreado=""
 done #Fin del for de recorrida de linea a linea
 #---------------------------------COMENTARIOS----------------------------------

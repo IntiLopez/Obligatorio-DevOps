@@ -1,3 +1,3 @@
-zaaaaaaaaaaar:iEste es un mi amigo pepe:/home/fiesta:SI:/bin/bash
-xzzzzzzzzzzzxar:Este es un usuario trucho:/trucho:NO:/bin/sh
-azzzzzzr::/home/pereza:SI:/bin/el_maligno
+test10:iEste es un mi amigo pepe:/home/lentejas:SI:/bin/bash
+test20:Este es un usuario trucho:/truchos:NO:/bin/sh
+test30::/home/pereza2:SI:/bin/el_maligno
